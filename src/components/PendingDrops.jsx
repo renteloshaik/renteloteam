@@ -1,4 +1,3 @@
-import React from "react";
 import yogaImage from "../assests/yoga.png";
 
 export default function PendingDrops() {
