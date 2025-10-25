@@ -2,12 +2,51 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="logo.png" />
+    <link rel="icon" type="image/png" href="/public/logo.webp" />
+
+    <!-- Preload critical assets (remove if not immediately needed) -->
+    <!-- Only preload if you use the image in the header or above the fold -->
+    <!-- <link rel="preload" as="image" href="src/assets/logo.webp" /> -->
+
+    <!-- Viewport for responsive design -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rentelo Dashboard |Team Rentelo|</title>
+
+    <!-- SEO Meta -->
+    <title>Rentelo Dashboard | Team Rentelo</title>
+    <meta name="description" content="Rentelo Dashboard – Manage bookings, leads, and pending drops efficiently with Team Rentelo's backend system." />
+    <link rel="canonical" href="https://yourdomain.com/" />
+
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:title" content="Rentelo Dashboard | Team Rentelo" />
+    <meta property="og:description" content="Manage bookings, leads, and pending drops efficiently with Team Rentelo." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://yourdomain.com/" />
+    <meta property="og:image" content="https://yourdomain.com/logo.webp" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Rentelo Dashboard | Team Rentelo" />
+    <meta name="twitter:description" content="Manage bookings, leads, and pending drops efficiently with Team Rentelo." />
+    <meta name="twitter:image" content="https://yourdomain.com/logo.webp" />
+
+    <!-- Structured Data (Organization) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Team Rentelo",
+      "url": "https://yourdomain.com/",
+      "logo": "https://yourdomain.com/logo.webp"
+    }
+    </script>
+
+    <!-- Fonts (ensure font-display swap) -->
+    <link rel="stylesheet" href="/src/styles/index.css" />
   </head>
   <body class="bg-gray-50">
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+
+    <!-- Defer non-critical scripts to improve LCP -->
+    <script type="module" src="/src/main.jsx" defer></script>
   </body>
 </html>

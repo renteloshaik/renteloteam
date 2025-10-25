@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
+import SafeChartWrapper from "./SafeChartWrapper";
 import {
   PieChart,
   Pie,
@@ -11,25 +12,22 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Legend,
   LabelList,
 } from "recharts";
 
 const STATUS_COLOR_MAP = {
-  Completed: "#1D4ED8",    // bg-blue-700
-  Extended: "#15803D",     // bg-green-700
-  "Drop off": "#3F3F46",   // bg-neutral-700
-  "Not Answered": "#B91C1C", // bg-red-700
-  "Call Back": "#A21CAF",  // bg-fuchsia-700
-  Other: "#EA580C",        // bg-orange-600
+  Completed: "#1D4ED8",
+  Extended: "#15803D",
+  "Drop off": "#3F3F46",
+  "Not Answered": "#B91C1C",
+  "Call Back": "#A21CAF",
+  Other: "#EA580C",
 };
-
 
 const LOCATION_PALETTE = [
   "#3B82F6", "#10B981", "#EF4444", "#8B5CF6", "#F97316",
   "#06B6D4", "#7C3AED", "#0EA5E9", "#14B8A6", "#665d5eff",
 ];
-
 
 function pickStatusColor(status, idx) {
   if (!status) return STATUS_COLOR_MAP.Other;
@@ -37,9 +35,7 @@ function pickStatusColor(status, idx) {
   const s = status.toString().toLowerCase();
   if (s.includes("complete")) return STATUS_COLOR_MAP.Completed;
   if (s.includes("drop")) return STATUS_COLOR_MAP["Drop off"];
-  if (s.includes("pause")) return STATUS_COLOR_MAP.Paused;
   if (s.includes("extend")) return STATUS_COLOR_MAP.Extended;
-  if (s.includes("pend")) return STATUS_COLOR_MAP.Pending;
   const keys = Object.keys(STATUS_COLOR_MAP);
   return STATUS_COLOR_MAP[keys[idx % keys.length]] || STATUS_COLOR_MAP.Other;
 }
@@ -47,23 +43,10 @@ function pickStatusColor(status, idx) {
 export default function TodaysDropsReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768); 
-    };
-
-    handleResize(); 
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
 
   const [versions, setVersions] = useState([]);
   const [selectedVersion, setSelectedVersion] = useState("");
-
   const [headers, setHeaders] = useState([]);
   const [rows, setRows] = useState([]);
   const [availableDates, setAvailableDates] = useState([]);
@@ -87,6 +70,13 @@ export default function TodaysDropsReport() {
   }, [headers]);
 
   useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
     let mounted = true;
     const init = async () => {
       setLoading(true);
@@ -98,7 +88,7 @@ export default function TodaysDropsReport() {
         if (ids.length > 0 && !selectedVersion) setSelectedVersion(ids[0]);
 
         const { data: namesData } = await supabase.from("uploads").select("name");
-        const uniq = Array.from(new Set((namesData || []).map((r) => (r.name || "Unassigned"))));
+        const uniq = Array.from(new Set((namesData || []).map((r) => r.name || "Unassigned")));
         setAgentMaster(uniq.sort((a, b) => a.localeCompare(b)));
       } catch (err) {
         console.error(err);
@@ -126,7 +116,6 @@ export default function TodaysDropsReport() {
           .select("id, version_id, cells, status, name")
           .eq("version_id", selectedVersion)
           .order("id", { ascending: true });
-
         if (!mounted) return;
         setRows(rowData || []);
 
@@ -194,56 +183,62 @@ export default function TodaysDropsReport() {
     }));
   }, [filteredRows, pickupIndex]);
 
-  if (loading) return <div className="flex justify-center items-center mt-12 text-gray-600">Loading...</div>;
-  if (error) return <div className="text-red-600 mt-12 text-center">{error}</div>;
+  if (loading) return <div className="flex justify-center items-center mt-12 text-gray-600" aria-busy="true">Loading...</div>;
+  if (error) return <div className="text-red-700 mt-12 text-center" role="alert">{error}</div>;
 
-return (
-    <div className="max-w-[1200px] mx-auto p-6 pb-20">
+ return (
+  <div className="max-w-[1380px] mx-auto p-6 pb-20">
+    {/* Header */}
     <div className="flex items-center justify-between mb-4">
-        <div>
+      <div>
         <h2 className="text-2xl font-bold text-gray-800">Drops Report</h2>
-        <p className="text-sm text-gray-500">
-            Version: <span className="font-medium">{selectedVersion || "—"}</span> • Rows:{" "}
-            <span className="font-medium">{rows.length}</span>
+        <p className="text-sm text-gray-700">
+          Version: <span className="font-medium">{selectedVersion || "—"}</span> • Rows:{" "}
+          <span className="font-medium">{rows.length}</span>
         </p>
-        </div>
+      </div>
     </div>
+
+    {/* Filters */}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div>
-        <label className="text-sm font-semibold text-gray-700 block mb-1">Select Version</label>
+      <div>
+        <label htmlFor="versionSelect" className="text-sm font-semibold text-gray-700 block mb-1">
+          Select Version
+        </label>
         <select
-            className="w-full border p-2 rounded"
-            value={selectedVersion}
-            onChange={(e) => setSelectedVersion(e.target.value)}
+          id="versionSelect"
+          className="w-full border p-2 rounded"
+          value={selectedVersion}
+          onChange={(e) => setSelectedVersion(e.target.value)}
         >
-            {versions.map((v) => <option key={v} value={v}>{v}</option>)}
+          {versions.map((v) => (
+            <option key={v} value={v}>{v}</option>
+          ))}
         </select>
-        </div> 
-        {/*
-        <div>
-        <label className="text-sm font-semibold text-gray-700 block mb-1">Filter by Drop Date</label>
-        <select
-            className="w-full border p-2 rounded"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-        >
-            <option value="all">All dates</option>
-            {availableDates.map((d) => <option key={d} value={d}>{d}</option>)}
-        </select>
-        </div>
-        */}
-        <div className="text-end">
-        <div className="text-sm text-gray-600">Total Drops: <span className="text-2xl font-bold">{filteredRows.length}</span></div>
-        <div className="mt-2 text-sm text-gray-500">Agents in master list: {agentMaster.length}</div>
-        </div>
+      </div>
+      <div className="text-end">
+        <div className="text-sm text-gray-700">Total Drops: <span className="text-2xl font-bold">{filteredRows.length}</span></div>
+        <div className="mt-2 text-sm text-gray-700">Agents in master list: {agentMaster.length}</div>
+      </div>
     </div>
+
+    {/* Charts Grid */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-4 rounded shadow">
+
+      {/* Drop Status Pie Chart */}
+      <div className="bg-white p-4 rounded shadow">
         <h3 className="font-semibold text-gray-800 mb-2">Drop Status</h3>
+        <div className="sr-only" aria-live="polite">
+          <h4>Drop Status Summary</h4>
+          <ul>
+            {statusCounts.map((s) => <li key={s.name}>{s.name}: {s.value} drops</li>)}
+          </ul>
+        </div>
+
         <div style={{ width: "100%", height: 320 }}>
-            <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-                <Pie
+              <Pie
                 data={statusCounts}
                 dataKey="value"
                 nameKey="name"
@@ -251,144 +246,122 @@ return (
                 cy="50%"
                 outerRadius={100}
                 label={({ value }) => `${value}`}
-                >
+              >
                 {statusCounts.map((entry, idx) => (
-                    <Cell key={entry.name} fill={pickStatusColor(entry.name, idx)} />
+                  <Cell key={entry.name} fill={pickStatusColor(entry.name, idx)} />
                 ))}
-                </Pie>
-                <ReTooltip formatter={(value, name) => [`${value} drops`, name]} />
-                
+              </Pie>
+              <ReTooltip formatter={(value, name) => [`${value} drops`, name]} />
             </PieChart>
-            </ResponsiveContainer>
+          </ResponsiveContainer>
         </div>
+
+        {/* Legend */}
         <div className="mt-3 flex flex-wrap gap-2">
           {statusCounts.map((s, idx) => (
-            <div
-              key={s.name}
-              className="flex items-center gap-2 sm:gap-2 p-2 border rounded flex-col-2"
-              
-            >
-              <div
-                style={{
-                  width: 10,
-                  height: 20,
-                  background: pickStatusColor(s.name, idx),
-                  borderRadius: 1,
-                }}
-              />
+            <div key={s.name} className="flex items-center gap-2 p-2 border rounded">
+              <div style={{ width: 10, height: 20, background: pickStatusColor(s.name, idx), borderRadius: 1 }} />
               <div className="text-xs">
-                <div className="text-xs font-medium">{s.name}</div>
-                <div className="text-xs text-gray-500">{s.value} drops</div>
+                <div className="font-medium text-gray-700">{s.name}</div>
+                <div className="text-gray-600">{s.value} drops</div>
               </div>
             </div>
           ))}
         </div>
-        </div>
-        <div className="bg-white p-4 rounded shadow flex justify-center">
+      </div>
+
+      {/* Drops by Agent Bar Chart */}
+      <div className="bg-white p-4 rounded shadow flex justify-center">
         <div className="w-full max-w-3xl">
-            <h3 className="font-semibold text-gray-800 mb-2">Drops by Agent</h3>
-            <div style={{ width: "100%", height: Math.max(agentCounts.length * 40, 320) }}>
+          <h3 className="font-semibold text-gray-800 mb-2">Drops by Agent</h3>
+          <div className="sr-only" aria-live="polite">
+            <h4>Drops by Agent</h4>
+            <ul>
+              {agentCounts.map((a) => <li key={a.name}>{a.name}: {a.count} drops</li>)}
+            </ul>
+          </div>
+
+          <div style={{ width: "100%", height: Math.max(agentCounts.length * 40, 320) }}>
             <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={agentCounts} layout="vertical" margin={{ left: 0, right: 10 }}>
+              <BarChart data={agentCounts} layout="vertical" margin={{ left: 0, right: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" allowDecimals={false} />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  width={isMobile ? 45 : 80} // reduce width on mobile
-                  tick={{ fontSize: isMobile ? 8 : 12, fill: "#374151" }} // smaller text
-                />
+                <YAxis type="category" dataKey="name" width={isMobile ? 45 : 80} tick={{ fontSize: isMobile ? 8 : 12, fill: "#374151" }} />
                 <ReTooltip />
-                <Bar
-                    dataKey="count"
-                    label={{ position: "right", formatter: (val) => `${val}` }}
-                >
-                    {agentCounts.map((entry, idx) => {
+                <Bar dataKey="count" label={{ position: "right", formatter: (val) => `${val}` }}>
+                  {agentCounts.map((entry) => {
                     const maxCount = Math.max(...agentCounts.map((a) => a.count));
                     const ratio = maxCount > 0 ? entry.count / maxCount : 0;
                     const red = Math.round(255 * (1 - ratio));
                     const green = Math.round(128 + 127 * ratio);
-                    const color = `rgb(${red},${green},0)`;
-                    return <Cell key={entry.name} fill={color} />;
-                    })}
+                    return <Cell key={entry.name} fill={`rgb(${red},${green},0)`} />;
+                  })}
                 </Bar>
-                </BarChart>
+              </BarChart>
             </ResponsiveContainer>
-            </div>
-            <div className="mt-3 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          </div>
+
+          {/* Agent Counts Grid */}
+          <div className="mt-3 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             {agentCounts.map((a) => (
-                <div
-                key={a.name}
-                className="flex justify-between items-center p-2 border rounded bg-gray-50"
-                >
+              <div key={a.name} className="flex justify-between items-center p-2 border rounded bg-gray-50">
                 <span className="font-medium text-gray-700 text-xs sm:text-sm">{a.name}</span>
                 <span className="text-xs sm:text-sm text-gray-600 ml-1">{a.count}</span>
-                </div>
+              </div>
             ))}
-            </div>
+          </div>
         </div>
-        </div>
-    </div>
-    <div className="bg-white p-4 rounded shadow mt-6 w-full">
-        <h3 className="font-semibold text-gray-800 mb-2">Drops by Location</h3>
-        <div style={{ width: "100%", height: 420 }}>
-        <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={locationCounts}
-              margin={{ top: 20, right: 20, left: 10, bottom: isMobile ? 60 : 80 }} 
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-
-              {!isMobile && (
-                <XAxis
-                  dataKey="location"
-                  angle={-45}
-                  textAnchor="end"
-                  interval={0}
-                  height={isMobile ? 45 : 100}
-                  tick={{ fontSize: isMobile ? 6 : 8, fill: "#374151" }}
-                />
-              )}
-
-              <YAxis
-                allowDecimals={false}
-                width={isMobile ? 40 : 80} // reduce width on mobile so chart stretches full width
-                tick={{ fontSize: isMobile ? 8 : 12, fill: "#374151" }}
-              />
-
-              <ReTooltip />
-
-              <Bar dataKey="count">
-                {locationCounts.map((entry) => (
-                  <Cell key={entry.location} fill={entry.color} />
-                ))}
-                <LabelList dataKey="count" position="top" />
-              </Bar>
-            </BarChart>
-        </ResponsiveContainer>
-        </div>
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {locationCounts.map((loc) => (
-                <div
-                key={loc.location}
-                className="flex items-center gap-2 p-2 border rounded bg-white"
-                >
-                <div
-                    style={{
-                    width: 14,
-                    height: 20,
-                    background: loc.color,
-                    borderRadius: 3,
-                    }}
-                />
-                <div className="text-[8px]">
-                    <div className="font-medium">{loc.location}</div>
-                    <div className="text-sm text-gray-500">{loc.count} drops</div>
-                </div>
-                </div>
-            ))}
-            </div>
       </div>
     </div>
-  );
+
+    {/* Drops by Location Bar Chart */}
+    <div className="bg-white p-4 rounded shadow mt-6 w-full">
+      <h3 className="font-semibold text-gray-800 mb-2">Drops by Location</h3>
+      <div className="sr-only" aria-live="polite">
+        <h4>Drops by Location</h4>
+        <ul>
+          {locationCounts.map((loc) => <li key={loc.location}>{loc.location}: {loc.count} drops</li>)}
+        </ul>
+      </div>
+
+      <div style={{ width: "100%", height: 420 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={locationCounts} margin={{ top: 20, right: 20, left: 10, bottom: isMobile ? 60 : 80 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            {!isMobile && (
+              <XAxis
+                dataKey="location"
+                angle={-45}
+                textAnchor="end"
+                interval={0}
+                height={isMobile ? 45 : 100}
+                tick={{ fontSize: isMobile ? 6 : 8, fill: "#374151" }}
+              />
+            )}
+            <YAxis allowDecimals={false} width={isMobile ? 40 : 80} tick={{ fontSize: isMobile ? 8 : 12, fill: "#374151" }} />
+            <ReTooltip />
+            <Bar dataKey="count">
+              {locationCounts.map((entry) => <Cell key={entry.location} fill={entry.color} />)}
+              <LabelList dataKey="count" position="top" />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Location Counts Grid */}
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        {locationCounts.map((loc) => (
+          <div key={loc.location} className="flex items-center gap-2 p-2 border rounded bg-white">
+            <div style={{ width: 14, height: 20, background: loc.color, borderRadius: 3 }} />
+            <div className="text-[8px]">
+              <div className="font-medium text-gray-700">{loc.location}</div>
+              <div className="text-sm text-gray-600">{loc.count} drops</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 }

@@ -405,6 +405,9 @@ export default function DataTableSupabase() {
               );
             })}
             <td className="px-4 py-3 border-t border-gray-200 text-sm h-12">
+              <label htmlFor={`status-${row.id}`} className="sr-only">
+                  Select status for row {row.id}
+                </label>
               <select
                 value={statuses[row.id] || ""}
                 onChange={(e) =>
@@ -425,6 +428,9 @@ export default function DataTableSupabase() {
               </select>
             </td>
             <td className="px-4 py-3 border-t border-gray-200 text-sm h-12">
+              <label htmlFor={`name-${row.id}`} className="sr-only">
+                Select name for row {row.id}
+              </label>
               <select
                 value={names[row.id] || ""}
                 onChange={(e) =>

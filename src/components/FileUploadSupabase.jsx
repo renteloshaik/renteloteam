@@ -20,7 +20,7 @@ export default function FileUploadSupabase({ onUploadComplete }) {
       if (jsonData.length === 0) return;
 
       const versionId = new Date().toISOString(); // or uuidv4()
-      
+
       // Insert into meta table
       const { error: metaError } = await supabase
         .from("meta")
@@ -39,9 +39,7 @@ export default function FileUploadSupabase({ onUploadComplete }) {
         name: "",
       }));
 
-      const { error: uploadError } = await supabase
-        .from("uploads")
-        .insert(rowsData);
+      const { error: uploadError } = await supabase.from("uploads").insert(rowsData);
 
       if (uploadError) {
         console.error("Uploads insert error:", uploadError);
@@ -62,7 +60,7 @@ export default function FileUploadSupabase({ onUploadComplete }) {
       {...getRootProps()}
       className="border-2 border-dashed border-indigo-400 rounded-xl p-8 text-center cursor-pointer bg-white shadow-md hover:bg-indigo-50 transition"
     >
-      <input {...getInputProps()} />
+      <input {...getInputProps()} aria-label="Upload Excel file" />
       <p className="text-lg text-gray-700">
         Drag & drop your Excel file here, or{" "}
         <span className="text-indigo-600 font-bold">click to upload</span>
